@@ -17,8 +17,8 @@ resource "aws_s3_bucket" "cv-website" {
   }
 }
 
-resource "aws_s3_bucket_website_configuration" "example" {
-  bucket = aws_s3_bucket.example.id
+resource "aws_s3_bucket_website_configuration" "cv-website-config" {
+  bucket = "cv-websitee"
 
   index_document {
     suffix = "index.html"
