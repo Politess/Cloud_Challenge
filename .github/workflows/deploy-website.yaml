@@ -1,43 +1,114 @@
-name: Deploy Website
+name: Terraform Workflow
 
 on:
   push:
     branches:
       - main
-    workflow_dispatch:  # Allows the workflow to be triggered manually
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch: # Allows manual triggering
+    inputs:
+      apply_confirm:
+        description: 'Confirm to apply terraform changes'
+        required: false
+
+env:
+  TF_WORKING_DIR: terraform # Define the terraform working directory
 
 jobs:
-  terraform:
-    name: Deploy Infrastructure
+  terraform-format:
+    name: Terraform Format Check
     runs-on: ubuntu-latest
-
-    env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
-
-    defaults:
-      run:
-        working-directory: ./terraform
-
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v2
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version:  1.9.8 # Or any version you need
+      
+      - name: Terraform Format Check
+        run: terraform fmt -check
+        working-directory: ${{ env.TF_WORKING_DIR }}
 
-      - name: Terraform Setup
-        uses: hashicorp/setup-terraform@v1
+  terraform-validate:
+    name: Terraform Validate
+    runs-on: ubuntu-latest
+    needs: terraform-format # Ensure the format check passed
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
-      - name: Terraform Format
-        run: terraform fmt
-
-      - name: Terraform Init
-        run: terraform init
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
 
       - name: Terraform Validate
         run: terraform validate
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+  terraform-plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    needs: terraform-validate # Ensure validation passed
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Configure AWS Credentials
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: echo "AWS credentials configured."
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ${{ env.TF_WORKING_DIR }}
 
       - name: Terraform Plan
-        run: terraform plan
+        run: terraform plan -out=tfplan
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+      - name: Upload Terraform Plan
+        uses: actions/upload-artifact@v3
+        with:
+          name: tfplan
+          path: ${{ env.TF_WORKING_DIR }}/tfplan
+
+  terraform-apply:
+    name: Terraform Apply (Manual Approval)
+    runs-on: ubuntu-latest
+    needs: terraform-plan # Ensure plan is completed
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.apply_confirm == 'true'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Configure AWS Credentials
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: echo "AWS credentials configured."
+
+      - name: Download Terraform Plan
+        uses: actions/download-artifact@v3
+        with:
+          name: tfplan
+          path: ${{ env.TF_WORKING_DIR }}
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve
+        run: terraform apply tfplan
+        working-directory: ${{ env.TF_WORKING_DIR }}
