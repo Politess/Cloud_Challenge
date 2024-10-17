@@ -44,7 +44,7 @@ jobs:
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: 1.5.0
+          terraform_version: 1.9.8
 
       - name: Terraform Validate
         run: terraform validate
@@ -61,7 +61,7 @@ jobs:
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: 1.5.0
+          terraform_version: 1.9.8
 
       - name: Configure AWS Credentials
         env:
@@ -95,7 +95,7 @@ jobs:
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: 1.5.0
+          terraform_version: 1.9.8
 
       - name: Configure AWS Credentials
         env:
