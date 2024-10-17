@@ -1,10 +1,5 @@
 terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
+  required_version = " >= 1.9.8"
 }
 
 # Configure the AWS Provider
@@ -12,9 +7,24 @@ provider "aws" {
   region = "us-east-1"
 }
 
-module "backend" {
-  source        = "./modules/remote_backend"
-  iam_user_name = "cloudchallenge"
-  bucket_name   = "bucket_test"
-  table_name    = "table_test"
+# S3 Bucket for Terraform state
+resource "aws_s3_bucket" "cv-website" {
+  bucket = "cv-websitee"
+
+  tags = {
+    Name        = "s3"
+    Environment = "Dev"
+  }
+}
+
+resource "aws_s3_bucket_website_configuration" "example" {
+  bucket = aws_s3_bucket.example.id
+
+  index_document {
+    suffix = "index.html"
+  }
+
+  error_document {
+    key = "error.html"
+  }
 }
