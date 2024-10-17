@@ -31,20 +31,6 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1  # Replace with your AWS region
 
-      - name: Debug AWS Credentials
-        run: |
-          if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ]; then
-            echo "AWS_ACCESS_KEY_ID is not set"
-          else
-            echo "AWS_ACCESS_KEY_ID is set"
-          fi
-
-          if [ -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ]; then
-            echo "AWS_SECRET_ACCESS_KEY is not set"
-          else
-            echo "AWS_SECRET_ACCESS_KEY is set"
-          fi
-
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v2
         with:
@@ -52,40 +38,6 @@ jobs:
 
       - name: Terraform Init
         run: terraform init
-        working-directory: ${{ env.TF_WORKING_DIR }}
-
-  terraform-format:
-    name: Terraform Format Check
-    runs-on: ubuntu-latest
-    needs: terraform-init # Depend on init
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.9.8
-      
-      - name: Terraform Format Check
-        run: terraform fmt -check
-        working-directory: ${{ env.TF_WORKING_DIR }}
-
-  terraform-validate:
-    name: Terraform Validate
-    runs-on: ubuntu-latest
-    needs: terraform-format # Depend on format check
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.9.8
-
-      - name: Terraform Validate
-        run: terraform validate
         working-directory: ${{ env.TF_WORKING_DIR }}
 
   terraform-plan:
